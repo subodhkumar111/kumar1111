@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Subodh Kumar Notes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: #eee;
+      font-family: sans-serif;
+    }
+
+    header {
+      background-color: #4CAF50;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      font-size: 1.5rem;
+    }
+
+    header img {
+      height: 50px;
+      width: 50px;
+      border-radius: 50%;
+      border: 2px solid white;
+      margin-left: 10px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      padding: 0.5rem;
+      background: #ddd;
+    }
+
+    .toolbar button, .toolbar input {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #canvas-container {
+      position: relative;
+      width: 800px;
+      height: 500px;
+      margin: 20px auto;
+      background-image: url('notebook-bg.png');
+      background-size: cover;
+      background-position: center;
+      border: 2px solid #ccc;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem;
+      max-width: 800px;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>📘 Subodh Kumar Notes</div>
+    <img src="subodh.jpg" alt="Subodh Photo">
+  </header>
+
+  <div class="toolbar">
+    <button onclick="setColor('black')">Black</button>
+    <button onclick="setColor('red')">Red</button>
+    <button onclick="setColor('blue')">Blue</button>
+    <button onclick="setColor('green')">Green</button>
+    <button onclick="clearCanvas()">Clear</button>
+    <button onclick="savePDF()">Save PDF</button>
+    <input type="file" accept="image/*" onchange="insertImage(event)">
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="canvas" width="800" height="500"></canvas>
+  </div>
+
+  <div class="nav-buttons">
+    <button onclick="prevPage()">⬅ Prev</button>
+    <span id="pageInfo">Page 1</span>
+    <button onclick="nextPage()">Next ➡</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let color = 'black';
+    let pages = [];
+    let currentPage = 0;
+
+    function setColor(c) {
+      color = c;
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!drawing) return;
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+
+    canvas.addEventListener("pointerup", () => drawing = false);
+    canvas.addEventListener("pointerout", () => drawing = false);
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function saveCurrentPage() {
+      pages[currentPage] = canvas.toDataURL("image/png");
+    }
+
+    function loadPage(index) {
+      clearCanvas();
+      const img = new Image();
+      img.src = pages[index];
+      img.onload = () => ctx.drawImage(img, 0, 0);
+    }
+
+    function nextPage() {
+      saveCurrentPage();
+      currentPage++;
+      if (!pages[currentPage]) {
+        pages[currentPage] = null;
+        clearCanvas();
+      } else {
+        loadPage(currentPage);
+      }
+      updatePageInfo();
+    }
+
+    function prevPage() {
+      if (currentPage === 0) return;
+      saveCurrentPage();
+      currentPage--;
+      loadPage(currentPage);
+      updatePageInfo();
+    }
+
+    function updatePageInfo() {
+      document.getElementById('pageInfo').textContent = `Page ${currentPage + 1}`;
+    }
+
+    function savePDF() {
+      saveCurrentPage();
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      pages.forEach((imgData, index) => {
+        if (index > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, 10, 190, 120);
+      });
+      pdf.save("Subodh_Kumar_Notes.pdf");
+    }
+
+    function insertImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const scale = 0.5;
+        const width = img.width * scale;
+        const height = img.height * scale;
+        ctx.drawImage(img, 100, 100, width, height);
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
+    // Initialize
+    pages.push(null);
+    updatePageInfo();
+  </script>
+
+</body>
+</html>
